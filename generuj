@@ -23,7 +23,7 @@ $dataSource = new PassthroughDataSource(
                     str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT),
                     str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT),
                     strtoupper(base_convert(rand(12, 35), 10, 36)),
-                    str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT)
+                    str_pad(rand(0, 99), 2, '0', STR_PAD_LEFT)
             )
         ])
 );
@@ -76,7 +76,7 @@ $content = new TwigTemplateContentGenerator(/** @lang Twig */ <<<Twig
     {% endBox %}
     
     {% box 2.5, 18, 80-2*2.5 with {"class": "barcode center"} as table %}
-        <barcode code="{{ code }}" type="C128B" height="5.9" />
+        <barcode code="{{ code }}" type="C128B" height="5.7" />
     {% endBox %}
     
     {% box 5, 70, 80-2*5 with {"class": "barcode_human center"} as table %}
