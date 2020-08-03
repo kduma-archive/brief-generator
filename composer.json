@@ -1,0 +1,6 @@
+{
+    "require": {
+        "kduma/bulk-generator": "dev-master",
+        "kduma/pdf-imposition": "dev-master"
+    }
+}

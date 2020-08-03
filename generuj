@@ -1,0 +1,101 @@
+#!/usr/bin/env php
+<?php
+
+use Kduma\BulkGenerator\ContentGenerators\TwigTemplateContentGenerator;
+use Kduma\PdfImposition\LayoutGenerators\Markers\OutsideBoxCutMarkings;
+use Kduma\PdfImposition\LayoutGenerators\AutoGridPageLayoutGenerator;
+use Kduma\BulkGenerator\DataSources\PassthroughDataSource;
+use Kduma\BulkGenerator\PdfGenerators\MpdfGenerator;
+use Kduma\BulkGenerator\PageOptions\PageSize;
+use Kduma\BulkGenerator\BulkGenerator;
+use Kduma\PdfImposition\PdfImposer;
+use Kduma\PdfImposition\PdfSource;
+use Kduma\PdfImposition\DTO\Size;
+
+require 'vendor/autoload.php';
+
+$dataSource = new PassthroughDataSource(
+    collect(range(1, 250))
+        ->map(fn($row) => [
+            'code' => sprintf(
+                    '%s-%s-%s-%s%s',
+                    str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT),
+                    str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT),
+                    str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT),
+                    strtoupper(base_convert(rand(12, 35), 10, 36)),
+                    str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT)
+            )
+        ])
+);
+
+$pdfGenerator = new MpdfGenerator(new PageSize(80, 80));
+
+$pdfGenerator->setCss(/** @lang CSS */ <<<CSS
+    .body {
+        font-family: monospace; 
+    }
+    
+    .barcode_human {
+        font-size:4mm; 
+    }
+    
+    .main {
+        font-size:8mm; 
+    }
+    
+    .secondary {
+        font-size:5mm; 
+    }
+    
+    .center {
+        text-align: center;
+    }
+    
+    .right {
+        text-align: right;
+    }
+    
+    .left {
+        text-align: left;
+    }
+    CSS
+);
+
+$content = new TwigTemplateContentGenerator(/** @lang Twig */ <<<Twig
+    {% box 25, 5, 30 with {"class": "main center"} as table %}
+        {{ code | slice(8, 3) }}
+    {% endBox %}
+    
+    {% box 5, 9, 20 with {"class": "secondary left"} as table %}
+        {{ code | slice(4, 3) }}
+    {% endBox %}
+    
+    {% box 55, 9, 20 with {"class": "secondary right"} as table %}
+        {{ code | slice(12, 1) }}
+        {{ code | slice(13, 2) }}
+    {% endBox %}
+    
+    {% box 2.5, 18, 80-2*2.5 with {"class": "barcode center"} as table %}
+        <barcode code="{{ code }}" type="C128B" height="5.9" />
+    {% endBox %}
+    
+    {% box 5, 70, 80-2*5 with {"class": "barcode_human center"} as table %}
+        {{ code }}
+    {% endBox %}
+    Twig
+);
+
+$generator = (new BulkGenerator($dataSource, $pdfGenerator))
+    ->setFrontContentGenerator($content);
+
+$generator->generate('pojedyncze.pdf');
+
+$layoutGenerator = new AutoGridPageLayoutGenerator(Size::make(80, 80));
+$layoutGenerator->center();
+
+$layoutGenerator = new OutsideBoxCutMarkings($layoutGenerator);
+
+$PdfImposer = new PdfImposer($layoutGenerator);
+
+$cards = (new PdfSource)->read('pojedyncze.pdf');
+$PdfImposer->export($cards, 'do_druku.pdf');
